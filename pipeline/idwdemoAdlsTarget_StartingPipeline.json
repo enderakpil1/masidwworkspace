@@ -1,0 +1,46 @@
+{
+	"name": "idwdemoAdlsTarget_StartingPipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "L0_idwdemoAdlsTarget_CustomerTransactionInsight",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "L0_idwdemoAdlsTarget_CustomerTransactionInsight",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "L0_idwdemoAdlsTarget_CustomerProductInsight",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "L0_idwdemoAdlsTarget_CustomerTransactionInsight",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "L0_idwdemoAdlsTarget_CustomerProductInsight",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"folder": {
+			"name": "idwdemoAdlsTarget"
+		},
+		"annotations": [],
+		"lastPublishTime": "2020-11-23T12:05:53Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

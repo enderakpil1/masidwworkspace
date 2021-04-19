@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 7",
+	"properties": {
+		"content": {
+			"query": "COPY INTO [dbo].[DimProductCategory]\nFROM 'https://solliancepublicdata.blob.core.windows.net/dataengineering/dp-203/awdata/DimProductCategory.csv'\nWITH (\n    FILE_TYPE='CSV',\n    FIELDTERMINATOR='|',\n    FIELDQUOTE='',\n    ROWTERMINATOR='\\n',\n    ENCODING = 'UTF16'\n);\nGO\n\nCOPY INTO [dbo].[DimProductSubcategory]\nFROM 'https://solliancepublicdata.blob.core.windows.net/dataengineering/dp-203/awdata/DimProductSubcategory.csv'\nWITH (\n    FILE_TYPE='CSV',\n    FIELDTERMINATOR='|',\n    FIELDQUOTE='',\n    ROWTERMINATOR='\\n',\n    ENCODING = 'UTF16'\n);\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"poolName": "idwpool",
+				"databaseName": "idwpool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

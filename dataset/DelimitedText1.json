@@ -1,0 +1,321 @@
+{
+	"name": "DelimitedText1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "Transaction.csv",
+				"container": "coneduenderdev001"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "TransactionId",
+				"type": "String"
+			},
+			{
+				"name": "TransactionInitiatedTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "TransactionCompletedTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "TransactionReceivedTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "TransactionEntryTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "TransactionConfirmationTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "CreditCheckTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "RequestedDeliveryDate",
+				"type": "String"
+			},
+			{
+				"name": "CommittedDeliveryDate",
+				"type": "String"
+			},
+			{
+				"name": "ActualDeliveryTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "DeliveryConfirmationTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "TransactionAmount",
+				"type": "String"
+			},
+			{
+				"name": "ShipmentToName",
+				"type": "String"
+			},
+			{
+				"name": "ShipmentToLocationId",
+				"type": "String"
+			},
+			{
+				"name": "TransactionConfirmationNumber",
+				"type": "String"
+			},
+			{
+				"name": "IdentificationCheckedIndicator",
+				"type": "String"
+			},
+			{
+				"name": "IdentificationId",
+				"type": "String"
+			},
+			{
+				"name": "TotalRetailPriceAmount",
+				"type": "String"
+			},
+			{
+				"name": "TotalAdjustmentPercentage",
+				"type": "String"
+			},
+			{
+				"name": "TotalAdjustmentAmount",
+				"type": "String"
+			},
+			{
+				"name": "TotalTransactionSalesPriceAmount",
+				"type": "String"
+			},
+			{
+				"name": "TotalShippingChargeAmount",
+				"type": "String"
+			},
+			{
+				"name": "TransactionTotalTaxAmount",
+				"type": "String"
+			},
+			{
+				"name": "TransactionRoundingAmount",
+				"type": "String"
+			},
+			{
+				"name": "TransactionTotalInvoicedAmount",
+				"type": "String"
+			},
+			{
+				"name": "TotalCommissionsPayableAmount",
+				"type": "String"
+			},
+			{
+				"name": "SplitCommissionsIndicator",
+				"type": "String"
+			},
+			{
+				"name": "RequestedShipmentCarrierName",
+				"type": "String"
+			},
+			{
+				"name": "AlternateCarrierAcceptableIndicator",
+				"type": "String"
+			},
+			{
+				"name": "ShipCompleteIndicator",
+				"type": "String"
+			},
+			{
+				"name": "AcknowledgementRequiredIndicator",
+				"type": "String"
+			},
+			{
+				"name": "ExpediteTransactionIndicator",
+				"type": "String"
+			},
+			{
+				"name": "DropShipmentIndicator",
+				"type": "String"
+			},
+			{
+				"name": "ActualShipmentCarrierName",
+				"type": "String"
+			},
+			{
+				"name": "TotalWeight",
+				"type": "String"
+			},
+			{
+				"name": "TotalFreightChargeAmount",
+				"type": "String"
+			},
+			{
+				"name": "UnitOfMeasureId",
+				"type": "String"
+			},
+			{
+				"name": "EarliestDeliveryWindowTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "LatestDeliveryWindowTimestamp",
+				"type": "String"
+			},
+			{
+				"name": "DeliveryInstructions",
+				"type": "String"
+			},
+			{
+				"name": "CustomerCreditCheckNote",
+				"type": "String"
+			},
+			{
+				"name": "MessageToCustomer",
+				"type": "String"
+			},
+			{
+				"name": "CustomerId",
+				"type": "String"
+			},
+			{
+				"name": "CustomerAccountId",
+				"type": "String"
+			},
+			{
+				"name": "PurchasingChannelId",
+				"type": "String"
+			},
+			{
+				"name": "SalesChannelId",
+				"type": "String"
+			},
+			{
+				"name": "DistributionChannelId",
+				"type": "String"
+			},
+			{
+				"name": "MarketingEventId",
+				"type": "String"
+			},
+			{
+				"name": "AdvertisingEventId",
+				"type": "String"
+			},
+			{
+				"name": "PromotionId",
+				"type": "String"
+			},
+			{
+				"name": "TransactionTypeId",
+				"type": "String"
+			},
+			{
+				"name": "BillingCycleId",
+				"type": "String"
+			},
+			{
+				"name": "MerchantId",
+				"type": "String"
+			},
+			{
+				"name": "CustomerIdentificationMethodId",
+				"type": "String"
+			},
+			{
+				"name": "TransactionClassificationId",
+				"type": "String"
+			},
+			{
+				"name": "TransactionProcessingStatusId",
+				"type": "String"
+			},
+			{
+				"name": "IsoCurrencyCode",
+				"type": "String"
+			},
+			{
+				"name": "TransactionExecutionMethodId",
+				"type": "String"
+			},
+			{
+				"name": "TransactionPriorityId",
+				"type": "String"
+			},
+			{
+				"name": "TransactionTaxStatusId",
+				"type": "String"
+			},
+			{
+				"name": "WebPageUrl",
+				"type": "String"
+			},
+			{
+				"name": "SessionId",
+				"type": "String"
+			},
+			{
+				"name": "PointOfSaleId",
+				"type": "String"
+			},
+			{
+				"name": "StoreId",
+				"type": "String"
+			},
+			{
+				"name": "WarehouseId",
+				"type": "String"
+			},
+			{
+				"name": "ResponsibilityCenterId",
+				"type": "String"
+			},
+			{
+				"name": "TransactionNote",
+				"type": "String"
+			},
+			{
+				"name": "ShipmentMethodId",
+				"type": "String"
+			},
+			{
+				"name": "DeviceId",
+				"type": "String"
+			},
+			{
+				"name": "SoftwareProductId",
+				"type": "String"
+			},
+			{
+				"name": "SoftwareProductVersionNumber",
+				"type": "String"
+			},
+			{
+				"name": "ApprovedByEmployeeId",
+				"type": "String"
+			},
+			{
+				"name": "PromotionOfferId",
+				"type": "String"
+			},
+			{
+				"name": "LoyaltyCardId",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

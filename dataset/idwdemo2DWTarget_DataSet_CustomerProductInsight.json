@@ -1,0 +1,20 @@
+{
+	"name": "idwdemo2DWTarget_DataSet_CustomerProductInsight",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "idwdemo2DWLinkedService",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "idwdemo2DWTarget"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "main",
+			"table": "CustomerProductInsight"
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

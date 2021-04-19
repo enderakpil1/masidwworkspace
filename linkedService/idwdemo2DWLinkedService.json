@@ -1,0 +1,12 @@
+{
+	"name": "idwdemo2DWLinkedService",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"typeProperties": {
+			"connectionString": "integrated security=False;encrypt=True;connection timeout=30;data source=masidwsqlserver.database.windows.net;initial catalog=masidwdw;user id=oadmin",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIk1BU0lEV1dPUktTUEFDRV8zODJiZmJkMS03ODU0LTQzZDQtOWNlMC1mMzg3ODlhNjJlYjMiDQp9"
+		},
+		"type": "AzureSqlDW",
+		"annotations": []
+	}
+}

@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 5",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (100) [ResellerKey]\n,[GeographyKey]\n,[ResellerAlternateKey]\n,[Phone]\n,[BusinessType]\n,[ResellerName]\n,[NumberEmployees]\n,[OrderFrequency]\n,[OrderMonth]\n,[FirstOrderYear]\n,[LastOrderYear]\n,[ProductLine]\n,[AddressLine1]\n,[AddressLine2]\n,[AnnualSales]\n,[BankName]\n,[MinPaymentType]\n,[MinPaymentAmount]\n,[AnnualRevenue]\n,[YearOpened]\n FROM [dbo].[DimReseller]",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"poolName": "idwpool",
+				"databaseName": "idwpool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

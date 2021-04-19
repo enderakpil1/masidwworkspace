@@ -1,0 +1,82 @@
+{
+	"name": "L0_idwdemoAdlsTarget_CustomerTransactionInsight_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "ReadWatermark_CustomerTransactionInsight",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 60
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/1598a1b0-e4a3-4404-a7d0-771bfa983e2b/watermarks/1598a1b0-e4a3-4404-a7d0-771bfa983e2b_CustomerTransactionInsight/compute?api-version=2020-01-12-preview",
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerTransactionInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "idwdemoAdlsTarget_CustomerTransactionInsightTransform",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "ReadWatermark_CustomerTransactionInsight",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 60
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "idwdemoAdlsTarget_CustomerTransactionInsight_DataFlow",
+						"type": "DataFlowReference",
+						"parameters": {
+							"modifiedAfter": {
+								"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.watermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+								"type": "Expression"
+							},
+							"modifiedBefore": {
+								"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.intendedWatermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+								"type": "Expression"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"folder": {
+			"name": "idwdemoAdlsTarget"
+		},
+		"annotations": [],
+		"lastPublishTime": "2020-12-07T09:01:21Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

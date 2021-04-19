@@ -1,0 +1,118 @@
+{
+	"name": "L0_idwdemo2DWTarget_CustomerTransactionInsight",
+	"properties": {
+		"activities": [
+			{
+				"name": "ReadWatermark_CustomerTransactionInsight",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 60
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/3f486803-9958-4a95-b14a-e3b1d5a8f648/watermarks/3f486803-9958-4a95-b14a-e3b1d5a8f648_CustomerTransactionInsight/compute?api-version=2020-01-12-preview",
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerTransactionInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			},
+			{
+				"name": "idwdemo2DWTarget_CustomerTransactionInsightTransform",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "ReadWatermark_CustomerTransactionInsight",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 60
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "idwdemo2DWTarget_CustomerTransactionInsight_DataFlow",
+						"type": "DataFlowReference",
+						"parameters": {
+							"modifiedAfter": {
+								"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.watermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+								"type": "Expression"
+							},
+							"modifiedBefore": {
+								"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.intendedWatermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+								"type": "Expression"
+							}
+						}
+					},
+					"staging": {
+						"linkedService": {
+							"referenceName": "idwdemo2AdlsLinkedService",
+							"type": "LinkedServiceReference"
+						},
+						"folderPath": "source/Staging/3f486803-9958-4a95-b14a-e3b1d5a8f648"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "UpdateWatermark_CustomerTransactionInsight",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "idwdemo2DWTarget_CustomerTransactionInsightTransform",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 60
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/3f486803-9958-4a95-b14a-e3b1d5a8f648/watermarks/3f486803-9958-4a95-b14a-e3b1d5a8f648_CustomerTransactionInsight/sync?api-version=2020-01-12-preview",
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerTransactionInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://management.azure.com/"
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "idwdemo2DWTarget"
+		},
+		"annotations": [],
+		"lastPublishTime": "2020-11-23T12:18:03Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

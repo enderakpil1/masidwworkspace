@@ -1,0 +1,26 @@
+{
+	"name": "Pipeline 1",
+	"properties": {
+		"activities": [
+			{
+				"name": "L0_idwdemoAdlsTarget_CustomerTransactionInsight_copy1",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "L0_idwdemoAdlsTarget_CustomerTransactionInsight_copy1",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"folder": {
+			"name": "idwdemoAdlsTarget"
+		},
+		"annotations": [],
+		"lastPublishTime": "2020-12-07T09:01:25Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}
