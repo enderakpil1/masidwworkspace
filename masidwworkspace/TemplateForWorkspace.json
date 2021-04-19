@@ -1,0 +1,2219 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "masidwworkspace"
+		},
+		"AzureBlobStorage1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage1'"
+		},
+		"AzureDataLakeStorage1_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage1'"
+		},
+		"idwdemo2AdlsLinkedService_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'idwdemo2AdlsLinkedService'"
+		},
+		"idwdemo2DWLinkedService_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'idwdemo2DWLinkedService'"
+		},
+		"idwdemoAdlsLinkedService_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'idwdemoAdlsLinkedService'"
+		},
+		"masidwworkspace-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'masidwworkspace-WorkspaceDefaultSqlServer'"
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://masidwadls.dfs.core.windows.net"
+		},
+		"idwdemo2AdlsLinkedService_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://masidwadls.dfs.core.windows.net"
+		},
+		"idwdemoAdlsLinkedService_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://masidwadls.dfs.core.windows.net"
+		},
+		"masidwworkspace-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://masidwadls.dfs.core.windows.net"
+		},
+		"nyc_tlc_green_sasUri": {
+			"type": "secureString",
+			"metadata": "Secure string for 'sasUri' of 'nyc_tlc_green'"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/bayramidw')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwpool')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/selmaidw')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/L0_idwdemo2DWTarget_CustomerProductInsight')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ReadWatermark_CustomerProductInsight",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/3f486803-9958-4a95-b14a-e3b1d5a8f648/watermarks/3f486803-9958-4a95-b14a-e3b1d5a8f648_CustomerProductInsight/compute?api-version=2020-01-12-preview",
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerProductInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.azure.com/"
+							}
+						}
+					},
+					{
+						"name": "idwdemo2DWTarget_CustomerProductInsightTransform",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "ReadWatermark_CustomerProductInsight",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "idwdemo2DWTarget_CustomerProductInsight_DataFlow",
+								"type": "DataFlowReference",
+								"parameters": {
+									"modifiedAfter": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerProductInsight').output.properties.watermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									},
+									"modifiedBefore": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerProductInsight').output.properties.intendedWatermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"TransactionLineItemDeltaSource": {},
+									"TransactionSource": {},
+									"CustomerProductInsightSink": {}
+								}
+							},
+							"staging": {
+								"linkedService": {
+									"referenceName": "idwdemo2AdlsLinkedService",
+									"type": "LinkedServiceReference"
+								},
+								"folderPath": "source/Staging/3f486803-9958-4a95-b14a-e3b1d5a8f648"
+							},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "UpdateWatermark_CustomerProductInsight",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "idwdemo2DWTarget_CustomerProductInsightTransform",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/3f486803-9958-4a95-b14a-e3b1d5a8f648/watermarks/3f486803-9958-4a95-b14a-e3b1d5a8f648_CustomerProductInsight/sync?api-version=2020-01-12-preview",
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerProductInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.azure.com/"
+							}
+						}
+					}
+				],
+				"folder": {
+					"name": "idwdemo2DWTarget"
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-11-23T12:18:01Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/idwdemo2DWTarget_CustomerProductInsight_DataFlow')]",
+				"[concat(variables('workspaceId'), '/linkedServices/idwdemo2AdlsLinkedService')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/L0_idwdemo2DWTarget_CustomerTransactionInsight')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ReadWatermark_CustomerTransactionInsight",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/3f486803-9958-4a95-b14a-e3b1d5a8f648/watermarks/3f486803-9958-4a95-b14a-e3b1d5a8f648_CustomerTransactionInsight/compute?api-version=2020-01-12-preview",
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerTransactionInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.azure.com/"
+							}
+						}
+					},
+					{
+						"name": "idwdemo2DWTarget_CustomerTransactionInsightTransform",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "ReadWatermark_CustomerTransactionInsight",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "idwdemo2DWTarget_CustomerTransactionInsight_DataFlow",
+								"type": "DataFlowReference",
+								"parameters": {
+									"modifiedAfter": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.watermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									},
+									"modifiedBefore": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.intendedWatermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"TransactionDeltaSource": {},
+									"TransactionLineItemSource": {},
+									"CustomerTransactionInsightSink": {}
+								}
+							},
+							"staging": {
+								"linkedService": {
+									"referenceName": "idwdemo2AdlsLinkedService",
+									"type": "LinkedServiceReference"
+								},
+								"folderPath": "source/Staging/3f486803-9958-4a95-b14a-e3b1d5a8f648"
+							},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "UpdateWatermark_CustomerTransactionInsight",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "idwdemo2DWTarget_CustomerTransactionInsightTransform",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/3f486803-9958-4a95-b14a-e3b1d5a8f648/watermarks/3f486803-9958-4a95-b14a-e3b1d5a8f648_CustomerTransactionInsight/sync?api-version=2020-01-12-preview",
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerTransactionInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.azure.com/"
+							}
+						}
+					}
+				],
+				"folder": {
+					"name": "idwdemo2DWTarget"
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-11-23T12:18:03Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/idwdemo2DWTarget_CustomerTransactionInsight_DataFlow')]",
+				"[concat(variables('workspaceId'), '/linkedServices/idwdemo2AdlsLinkedService')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/L0_idwdemoAdlsTarget_CustomerProductInsight')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ReadWatermark_CustomerProductInsight",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/1598a1b0-e4a3-4404-a7d0-771bfa983e2b/watermarks/1598a1b0-e4a3-4404-a7d0-771bfa983e2b_CustomerProductInsight/compute?api-version=2020-01-12-preview",
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerProductInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.azure.com/"
+							}
+						}
+					},
+					{
+						"name": "idwdemoAdlsTarget_CustomerProductInsightTransform",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "ReadWatermark_CustomerProductInsight",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "idwdemoAdlsTarget_CustomerProductInsight_DataFlow",
+								"type": "DataFlowReference",
+								"parameters": {
+									"modifiedAfter": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerProductInsight').output.properties.watermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									},
+									"modifiedBefore": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerProductInsight').output.properties.intendedWatermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"TransactionLineItemDeltaSource": {},
+									"TransactionSource": {},
+									"CustomerProductInsightSink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "UpdateWatermark_CustomerProductInsight",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "idwdemoAdlsTarget_CustomerProductInsightTransform",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/1598a1b0-e4a3-4404-a7d0-771bfa983e2b/watermarks/1598a1b0-e4a3-4404-a7d0-771bfa983e2b_CustomerProductInsight/sync?api-version=2020-01-12-preview",
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerProductInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.azure.com/"
+							}
+						}
+					}
+				],
+				"folder": {
+					"name": "idwdemoAdlsTarget"
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-11-23T12:05:51Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/idwdemoAdlsTarget_CustomerProductInsight_DataFlow')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/L0_idwdemoAdlsTarget_CustomerTransactionInsight')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ReadWatermark_CustomerTransactionInsight",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/1598a1b0-e4a3-4404-a7d0-771bfa983e2b/watermarks/1598a1b0-e4a3-4404-a7d0-771bfa983e2b_CustomerTransactionInsight/compute?api-version=2020-01-12-preview",
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerTransactionInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.azure.com/"
+							}
+						}
+					},
+					{
+						"name": "idwdemoAdlsTarget_CustomerTransactionInsightTransform",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "ReadWatermark_CustomerTransactionInsight",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "idwdemoAdlsTarget_CustomerTransactionInsight_DataFlow",
+								"type": "DataFlowReference",
+								"parameters": {
+									"modifiedAfter": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.watermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									},
+									"modifiedBefore": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.intendedWatermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"TransactionDeltaSource": {},
+									"TransactionLineItemSource": {},
+									"CustomerTransactionInsightSink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "UpdateWatermark_CustomerTransactionInsight",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "idwdemoAdlsTarget_CustomerTransactionInsightTransform",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/1598a1b0-e4a3-4404-a7d0-771bfa983e2b/watermarks/1598a1b0-e4a3-4404-a7d0-771bfa983e2b_CustomerTransactionInsight/sync?api-version=2020-01-12-preview",
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerTransactionInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.azure.com/"
+							}
+						}
+					}
+				],
+				"folder": {
+					"name": "idwdemoAdlsTarget"
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-11-23T12:05:52Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/idwdemoAdlsTarget_CustomerTransactionInsight_DataFlow')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/L0_idwdemoAdlsTarget_CustomerTransactionInsight_copy1')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ReadWatermark_CustomerTransactionInsight",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://management.azure.com/subscriptions/6cc936ce-42e8-42b1-b8ff-9e9addff3cad/resourceGroups/qsidw/providers/Microsoft.IndustryDataLifecycle/pipelineSets/1598a1b0-e4a3-4404-a7d0-771bfa983e2b/watermarks/1598a1b0-e4a3-4404-a7d0-771bfa983e2b_CustomerTransactionInsight/compute?api-version=2020-01-12-preview",
+							"connectVia": {
+								"referenceName": "AutoResolveIntegrationRuntime",
+								"type": "IntegrationRuntimeReference"
+							},
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\r\n  \"PipelineName\": \"@{pipeline().Pipeline}\",\r\n  \"EntityName\": \"CustomerTransactionInsight\",\r\n  \"PipelineRunId\": \"@{pipeline().RunId}\"\r\n}",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.azure.com/"
+							}
+						}
+					},
+					{
+						"name": "idwdemoAdlsTarget_CustomerTransactionInsightTransform",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "ReadWatermark_CustomerTransactionInsight",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 3,
+							"retryIntervalInSeconds": 60
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "idwdemoAdlsTarget_CustomerTransactionInsight_DataFlow",
+								"type": "DataFlowReference",
+								"parameters": {
+									"modifiedAfter": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.watermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									},
+									"modifiedBefore": {
+										"value": "toTimestamp(\"@{activity('ReadWatermark_CustomerTransactionInsight').output.properties.intendedWatermarkValue}\", \"yyyy-MM-dd HH:mm:ss.SSS\")",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"TransactionDeltaSource": {},
+									"TransactionLineItemSource": {},
+									"CustomerTransactionInsightSink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"folder": {
+					"name": "idwdemoAdlsTarget"
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-12-07T09:01:21Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
+				"[concat(variables('workspaceId'), '/dataflows/idwdemoAdlsTarget_CustomerTransactionInsight_DataFlow')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_ACT_PAUSE_SQLPOOL')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"description": "Pauses SQL pool",
+				"activities": [
+					{
+						"name": "Until SQL POOL is Paused or Online",
+						"type": "Until",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@or(bool(startswith(activity('Check for changed SQLPool Status').Output.Properties.status,'Paused')),Bool(startswith(activity('Check for changed SQLPool Status').Output.Properties.status,'Online')))",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Check for changed SQLPool Status",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "https://management.azure.com/subscriptions/@{pipeline().parameters.SubscriptionID}/resourceGroups/@{pipeline().parameters.Synapse_ResourceGroupName}/providers/Microsoft.Synapse/workspaces/@{pipeline().parameters.SynapseWorkspace}/sqlPools/@{pipeline().parameters.SynapseDedicatedSQLPool}/?api-version=2019-06-01-preview",
+											"type": "Expression"
+										},
+										"connectVia": {
+											"referenceName": "AutoResolveIntegrationRuntime",
+											"type": "IntegrationRuntimeReference"
+										},
+										"method": "GET",
+										"headers": {},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.azure.com/"
+										}
+									}
+								},
+								{
+									"name": "Wait before checking again",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Check for changed SQLPool Status",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": {
+											"value": "@pipeline().parameters.WaitTimeUntil",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"timeout": "0.00:20:00"
+						}
+					},
+					{
+						"name": "Check if SQL POOL is Paused",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Until SQL POOL is Paused or Online",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@bool(startswith(activity('Check for changed SQLPool Status').Output.Properties.status,'Paused'))",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Pause SQL POOL",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "https://management.azure.com/subscriptions/@{pipeline().parameters.SubscriptionID}/resourceGroups/@{pipeline().parameters.Synapse_ResourceGroupName}/providers/Microsoft.Synapse/workspaces/@{pipeline().parameters.SynapseWorkspace}/sqlPools/@{pipeline().parameters.SynapseDedicatedSQLPool}/@{pipeline().parameters.Action}?api-version=2019-06-01-preview",
+											"type": "Expression"
+										},
+										"connectVia": {
+											"referenceName": "AutoResolveIntegrationRuntime",
+											"type": "IntegrationRuntimeReference"
+										},
+										"method": "POST",
+										"headers": {
+											"Nothing": "Nothing"
+										},
+										"body": {
+											"a": "key"
+										},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.azure.com/"
+										}
+									}
+								},
+								{
+									"name": "Wait before Continue",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Pause SQL POOL",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": {
+											"value": "@pipeline().parameters.WaitTime",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"parameters": {
+					"Action": {
+						"type": "string",
+						"defaultValue": "Pause"
+					},
+					"WaitTime": {
+						"type": "int",
+						"defaultValue": 10
+					},
+					"WaitTimeUntil": {
+						"type": "int",
+						"defaultValue": 30
+					},
+					"Synapse_ResourceGroupName": {
+						"type": "string",
+						"defaultValue": "qsidw"
+					},
+					"SynapseWorkspace": {
+						"type": "string",
+						"defaultValue": "masidwworkspace"
+					},
+					"SynapseDedicatedSQLPool": {
+						"type": "string",
+						"defaultValue": "bayramidw"
+					},
+					"SubscriptionId": {
+						"type": "string",
+						"defaultValue": "6cc936ce-42e8-42b1-b8ff-9e9addff3cad"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-03-30T14:33:24Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_ACT_RESUME_SQLPOOL')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"description": "Pauses SQL pool",
+				"activities": [
+					{
+						"name": "Until SQL POOL is Paused or Online",
+						"type": "Until",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@or(bool(startswith(activity('Check for changed SQLPool Status').Output.Properties.status,'Paused')),Bool(startswith(activity('Check for changed SQLPool Status').Output.Properties.status,'Online')))",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Check for changed SQLPool Status",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "https://management.azure.com/subscriptions/@{pipeline().parameters.SubscriptionID}/resourceGroups/@{pipeline().parameters.Synapse_ResourceGroupName}/providers/Microsoft.Synapse/workspaces/@{pipeline().parameters.SynapseWorkspace}/sqlPools/@{pipeline().parameters.SynapseDedicatedSQLPool}/?api-version=2019-06-01-preview",
+											"type": "Expression"
+										},
+										"connectVia": {
+											"referenceName": "AutoResolveIntegrationRuntime",
+											"type": "IntegrationRuntimeReference"
+										},
+										"method": "GET",
+										"headers": {},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.azure.com/"
+										}
+									}
+								},
+								{
+									"name": "Wait before checking again",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Check for changed SQLPool Status",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": {
+											"value": "@pipeline().parameters.WaitTimeUntil",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"timeout": "00.20:00:00"
+						}
+					},
+					{
+						"name": "Check if SQL POOL is Paused",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Until SQL POOL is Paused or Online",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@bool(startswith(activity('Check for changed SQLPool Status').Output.Properties.status,'Paused'))",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "Resume SQL POOL",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "https://management.azure.com/subscriptions/@{pipeline().parameters.SubscriptionID}/resourceGroups/@{pipeline().parameters.Synapse_ResourceGroupName}/providers/Microsoft.Synapse/workspaces/@{pipeline().parameters.SynapseWorkspace}/sqlPools/@{pipeline().parameters.SynapseDedicatedSQLPool}/@{pipeline().parameters.Action}?api-version=2019-06-01-preview",
+											"type": "Expression"
+										},
+										"connectVia": {
+											"referenceName": "AutoResolveIntegrationRuntime",
+											"type": "IntegrationRuntimeReference"
+										},
+										"method": "POST",
+										"headers": {
+											"Nothing": "\"Nothing\""
+										},
+										"body": {
+											"a": "key"
+										},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.azure.com/"
+										}
+									}
+								},
+								{
+									"name": "Wait before Continue",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Resume SQL POOL",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": {
+											"value": "@pipeline().parameters.WaitTime",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"parameters": {
+					"Action": {
+						"type": "string",
+						"defaultValue": "Pause"
+					},
+					"WaitTime": {
+						"type": "int",
+						"defaultValue": 10
+					},
+					"WaitTimeUntil": {
+						"type": "int",
+						"defaultValue": 30
+					},
+					"Synapse_ResourceGroupName": {
+						"type": "string",
+						"defaultValue": "qsidw"
+					},
+					"SynapseWorkspace": {
+						"type": "string",
+						"defaultValue": "masidwworkspace"
+					},
+					"SynapseDedicatedSQLPool": {
+						"type": "string",
+						"defaultValue": "bayramidw"
+					},
+					"SubscriptionId": {
+						"type": "string",
+						"defaultValue": "6cc936ce-42e8-42b1-b8ff-9e9addff3cad"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-03-30T14:35:18Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Pipeline 1')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "L0_idwdemoAdlsTarget_CustomerTransactionInsight_copy1",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "L0_idwdemoAdlsTarget_CustomerTransactionInsight_copy1",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"folder": {
+					"name": "idwdemoAdlsTarget"
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-12-07T09:01:25Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/L0_idwdemoAdlsTarget_CustomerTransactionInsight_copy1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemo2DWTarget_StartingPipeline')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "L0_idwdemo2DWTarget_CustomerTransactionInsight",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "L0_idwdemo2DWTarget_CustomerTransactionInsight",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "L0_idwdemo2DWTarget_CustomerProductInsight",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "L0_idwdemo2DWTarget_CustomerTransactionInsight",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "L0_idwdemo2DWTarget_CustomerProductInsight",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"folder": {
+					"name": "idwdemo2DWTarget"
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-11-23T12:18:06Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/L0_idwdemo2DWTarget_CustomerTransactionInsight')]",
+				"[concat(variables('workspaceId'), '/pipelines/L0_idwdemo2DWTarget_CustomerProductInsight')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemoAdlsTarget_StartingPipeline')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "L0_idwdemoAdlsTarget_CustomerTransactionInsight",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "L0_idwdemoAdlsTarget_CustomerTransactionInsight",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "L0_idwdemoAdlsTarget_CustomerProductInsight",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "L0_idwdemoAdlsTarget_CustomerTransactionInsight",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "L0_idwdemoAdlsTarget_CustomerProductInsight",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"folder": {
+					"name": "idwdemoAdlsTarget"
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-11-23T12:05:53Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/L0_idwdemoAdlsTarget_CustomerTransactionInsight')]",
+				"[concat(variables('workspaceId'), '/pipelines/L0_idwdemoAdlsTarget_CustomerProductInsight')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DelimitedText1')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "Transaction.csv",
+						"container": "coneduenderdev001"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "TransactionId",
+						"type": "String"
+					},
+					{
+						"name": "TransactionInitiatedTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "TransactionCompletedTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "TransactionReceivedTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "TransactionEntryTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "TransactionConfirmationTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "CreditCheckTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "RequestedDeliveryDate",
+						"type": "String"
+					},
+					{
+						"name": "CommittedDeliveryDate",
+						"type": "String"
+					},
+					{
+						"name": "ActualDeliveryTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "DeliveryConfirmationTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "TransactionAmount",
+						"type": "String"
+					},
+					{
+						"name": "ShipmentToName",
+						"type": "String"
+					},
+					{
+						"name": "ShipmentToLocationId",
+						"type": "String"
+					},
+					{
+						"name": "TransactionConfirmationNumber",
+						"type": "String"
+					},
+					{
+						"name": "IdentificationCheckedIndicator",
+						"type": "String"
+					},
+					{
+						"name": "IdentificationId",
+						"type": "String"
+					},
+					{
+						"name": "TotalRetailPriceAmount",
+						"type": "String"
+					},
+					{
+						"name": "TotalAdjustmentPercentage",
+						"type": "String"
+					},
+					{
+						"name": "TotalAdjustmentAmount",
+						"type": "String"
+					},
+					{
+						"name": "TotalTransactionSalesPriceAmount",
+						"type": "String"
+					},
+					{
+						"name": "TotalShippingChargeAmount",
+						"type": "String"
+					},
+					{
+						"name": "TransactionTotalTaxAmount",
+						"type": "String"
+					},
+					{
+						"name": "TransactionRoundingAmount",
+						"type": "String"
+					},
+					{
+						"name": "TransactionTotalInvoicedAmount",
+						"type": "String"
+					},
+					{
+						"name": "TotalCommissionsPayableAmount",
+						"type": "String"
+					},
+					{
+						"name": "SplitCommissionsIndicator",
+						"type": "String"
+					},
+					{
+						"name": "RequestedShipmentCarrierName",
+						"type": "String"
+					},
+					{
+						"name": "AlternateCarrierAcceptableIndicator",
+						"type": "String"
+					},
+					{
+						"name": "ShipCompleteIndicator",
+						"type": "String"
+					},
+					{
+						"name": "AcknowledgementRequiredIndicator",
+						"type": "String"
+					},
+					{
+						"name": "ExpediteTransactionIndicator",
+						"type": "String"
+					},
+					{
+						"name": "DropShipmentIndicator",
+						"type": "String"
+					},
+					{
+						"name": "ActualShipmentCarrierName",
+						"type": "String"
+					},
+					{
+						"name": "TotalWeight",
+						"type": "String"
+					},
+					{
+						"name": "TotalFreightChargeAmount",
+						"type": "String"
+					},
+					{
+						"name": "UnitOfMeasureId",
+						"type": "String"
+					},
+					{
+						"name": "EarliestDeliveryWindowTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "LatestDeliveryWindowTimestamp",
+						"type": "String"
+					},
+					{
+						"name": "DeliveryInstructions",
+						"type": "String"
+					},
+					{
+						"name": "CustomerCreditCheckNote",
+						"type": "String"
+					},
+					{
+						"name": "MessageToCustomer",
+						"type": "String"
+					},
+					{
+						"name": "CustomerId",
+						"type": "String"
+					},
+					{
+						"name": "CustomerAccountId",
+						"type": "String"
+					},
+					{
+						"name": "PurchasingChannelId",
+						"type": "String"
+					},
+					{
+						"name": "SalesChannelId",
+						"type": "String"
+					},
+					{
+						"name": "DistributionChannelId",
+						"type": "String"
+					},
+					{
+						"name": "MarketingEventId",
+						"type": "String"
+					},
+					{
+						"name": "AdvertisingEventId",
+						"type": "String"
+					},
+					{
+						"name": "PromotionId",
+						"type": "String"
+					},
+					{
+						"name": "TransactionTypeId",
+						"type": "String"
+					},
+					{
+						"name": "BillingCycleId",
+						"type": "String"
+					},
+					{
+						"name": "MerchantId",
+						"type": "String"
+					},
+					{
+						"name": "CustomerIdentificationMethodId",
+						"type": "String"
+					},
+					{
+						"name": "TransactionClassificationId",
+						"type": "String"
+					},
+					{
+						"name": "TransactionProcessingStatusId",
+						"type": "String"
+					},
+					{
+						"name": "IsoCurrencyCode",
+						"type": "String"
+					},
+					{
+						"name": "TransactionExecutionMethodId",
+						"type": "String"
+					},
+					{
+						"name": "TransactionPriorityId",
+						"type": "String"
+					},
+					{
+						"name": "TransactionTaxStatusId",
+						"type": "String"
+					},
+					{
+						"name": "WebPageUrl",
+						"type": "String"
+					},
+					{
+						"name": "SessionId",
+						"type": "String"
+					},
+					{
+						"name": "PointOfSaleId",
+						"type": "String"
+					},
+					{
+						"name": "StoreId",
+						"type": "String"
+					},
+					{
+						"name": "WarehouseId",
+						"type": "String"
+					},
+					{
+						"name": "ResponsibilityCenterId",
+						"type": "String"
+					},
+					{
+						"name": "TransactionNote",
+						"type": "String"
+					},
+					{
+						"name": "ShipmentMethodId",
+						"type": "String"
+					},
+					{
+						"name": "DeviceId",
+						"type": "String"
+					},
+					{
+						"name": "SoftwareProductId",
+						"type": "String"
+					},
+					{
+						"name": "SoftwareProductVersionNumber",
+						"type": "String"
+					},
+					{
+						"name": "ApprovedByEmployeeId",
+						"type": "String"
+					},
+					{
+						"name": "PromotionOfferId",
+						"type": "String"
+					},
+					{
+						"name": "LoyaltyCardId",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/AzureBlobStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemo2DWTarget_DataSet_CustomerProductInsight')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "idwdemo2DWLinkedService",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "idwdemo2DWTarget"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "main",
+					"table": "CustomerProductInsight"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/idwdemo2DWLinkedService')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemo2DWTarget_DataSet_CustomerTransactionInsight')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "idwdemo2DWLinkedService",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "idwdemo2DWTarget"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "main",
+					"table": "CustomerTransactionInsight"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/idwdemo2DWLinkedService')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AzureBlobStorage1')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureBlobStorage1_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AzureDataLakeStorage1')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDataLakeStorage1_accountKey')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemo2AdlsLinkedService')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('idwdemo2AdlsLinkedService_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('idwdemo2AdlsLinkedService_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemo2DWLinkedService')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('idwdemo2DWLinkedService_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemoAdlsLinkedService')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('idwdemoAdlsLinkedService_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('idwdemoAdlsLinkedService_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/masidwworkspace-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('masidwworkspace-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/masidwworkspace-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('masidwworkspace-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/nyc_tlc_green')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"sasUri": "[parameters('nyc_tlc_green_sasUri')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/IntegrationRuntime12')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemo2DWTarget_CustomerProductInsight_DataFlow')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "idwdemo2DWTarget"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "idwdemo2AdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemo2AdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "TransactionLineItemDeltaSource"
+						},
+						{
+							"linkedService": {
+								"referenceName": "idwdemo2AdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemo2AdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "TransactionSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "idwdemo2DWTarget_DataSet_CustomerProductInsight",
+								"type": "DatasetReference"
+							},
+							"name": "CustomerProductInsightSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "TransactionLineItem"
+						},
+						{
+							"name": "Transaction"
+						},
+						{
+							"name": "JoinTransaction"
+						},
+						{
+							"name": "AggregatedTransactionLineItem"
+						},
+						{
+							"name": "PreAlterRowCustomerProductInsight"
+						},
+						{
+							"name": "CustomerProductInsight"
+						}
+					],
+					"script": "parameters{\n\tmodifiedAfter as timestamp,\n\tmodifiedBefore as timestamp\n}\nsource(output(\n\t\tTransactionId as integer,\n\t\tTransactionLineItemId as integer,\n\t\tTransactionLineItemStartTimestamp as timestamp,\n\t\tTransactionLineItemCompletedTimestamp as timestamp,\n\t\tProductId as integer,\n\t\tItemSku as string,\n\t\tUniversalProductCode as decimal(10,0),\n\t\tQuantity as decimal(10,0),\n\t\tUnitOfMeasureId as integer,\n\t\tPreorderIndicator as integer,\n\t\tProductListPriceAmount as decimal(10,0),\n\t\tTransactionProductPriceAmount as decimal(10,0),\n\t\tIsoCurrencyCode as string,\n\t\tFreeSampleIndicator as boolean,\n\t\tTotalTransactionLineItemAmount as decimal(10,0),\n\t\tTotalTransactionSalesPriceAmount as decimal(10,0),\n\t\tTransactionLineEntryMethodId as integer,\n\t\tTransactionLineItemScanTimestamp as timestamp,\n\t\tPosDeviceId as integer,\n\t\tScaleUsedIndicator as boolean,\n\t\tScaleMeasuredItemWeight as integer,\n\t\tWeightUomId as integer,\n\t\tScaleQuantity as decimal(10,0),\n\t\tTransactionLineVolume as decimal(10,0),\n\t\tVolumeUomId as integer,\n\t\tProductPriceOverrideIndicator as boolean,\n\t\tProductPriceAdjustmentAmount as decimal(10,0),\n\t\tProductPriceAdjustmentPercentage as decimal(10,0),\n\t\tTotalLineItemAdjustmentAmount as decimal(10,0),\n\t\tLineItemNote as string,\n\t\tQuantityBooked as integer,\n\t\tQuantityBilled as integer,\n\t\tQuantityBacklog as integer,\n\t\tAcceptedQuantity as decimal(10,0),\n\t\tQuantityCancelled as integer,\n\t\tQuantityReturned as integer,\n\t\tBookedTimestamp as timestamp,\n\t\tBilledTimestamp as timestamp,\n\t\tCancelledTimestamp as timestamp,\n\t\tReturnedTimestamp as timestamp,\n\t\tCommittedShipmentTimestamp as timestamp,\n\t\tRequestedDeliveryTimestamp as timestamp,\n\t\tCommittedDeliveryTimestamp as timestamp,\n\t\tCommittedAvailableForPickupTimestamp as timestamp,\n\t\tPlannedPickTimestamp as timestamp,\n\t\tActualPickTimestamp as timestamp,\n\t\tPlannedShipmentTimestamp as timestamp,\n\t\tActualShipmentTimestamp as timestamp,\n\t\tPlannedDeliveryTimestamp as timestamp,\n\t\tActualDeliveryTimestamp as timestamp,\n\t\tDeliveryConfirmationTimestamp as timestamp,\n\t\tShipmentChargeAmount as decimal(10,0),\n\t\tShipmentCostAmount as decimal(10,0),\n\t\tPickPackageCostAmount as decimal(10,0),\n\t\tShippingLocationId as integer,\n\t\tShipmentMethodId as integer,\n\t\tDropShipLineItemIndicator as boolean,\n\t\tWaybillNumber as integer,\n\t\tTareWeight as integer,\n\t\tNetWeight as integer,\n\t\tShipCompleteIndicator as boolean,\n\t\tEarliestDeliveryWindowTimestamp as timestamp,\n\t\tLatestDeliveryWindowTimestamp as timestamp,\n\t\tReturnTransactionId as integer,\n\t\tReturnTransactionLineItemId as integer,\n\t\tReturnToStockIndicator as boolean,\n\t\tReturnToStoreIndicator as boolean,\n\t\tApprovedByEmployeeId as integer,\n\t\tSalesChannelId as integer,\n\t\tDistributionChannelId as integer,\n\t\tTransactionLineItemTypeId as integer,\n\t\tTransactionLineItemStatusId as integer,\n\t\tFuelPumpId as integer,\n\t\tBuyClassId as integer,\n\t\tPromotionId as integer,\n\t\tPharmacyId as integer,\n\t\tPharmacyTransactionId as integer,\n\t\tPromotionOfferId as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: true,\n\tmodifiedAfter: (addDays(currentUTC(), -180)),\n\tmodifiedBefore: ($modifiedBefore),\n\tentity: 'TransactionLineItem.cdm.json/TransactionLineItem',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'TransactionLineItem',\n\tcorpusPath: 'idwdemo2LogicalSource',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'source',\n\tfolderPath: 'idwdemo2PhysicalSourcePE/TransactionLineItem',\n\tfileSystem: 'source') ~> TransactionLineItemDeltaSource\nsource(output(\n\t\tTransactionId as integer,\n\t\tTransactionInitiatedTimestamp as timestamp,\n\t\tTransactionCompletedTimestamp as timestamp,\n\t\tTransactionReceivedTimestamp as timestamp,\n\t\tTransactionEntryTimestamp as timestamp,\n\t\tTransactionConfirmationTimestamp as timestamp,\n\t\tCreditCheckTimestamp as timestamp,\n\t\tRequestedDeliveryDate as date,\n\t\tCommittedDeliveryDate as date,\n\t\tActualDeliveryTimestamp as timestamp,\n\t\tDeliveryConfirmationTimestamp as timestamp,\n\t\tTransactionAmount as decimal(10,0),\n\t\tShipmentToName as string,\n\t\tShipmentToLocationId as integer,\n\t\tTransactionConfirmationNumber as string,\n\t\tIdentificationCheckedIndicator as boolean,\n\t\tIdentificationId as integer,\n\t\tTotalRetailPriceAmount as decimal(10,0),\n\t\tTotalAdjustmentPercentage as decimal(10,0),\n\t\tTotalAdjustmentAmount as decimal(10,0),\n\t\tTotalTransactionSalesPriceAmount as decimal(10,0),\n\t\tTotalShippingChargeAmount as decimal(10,0),\n\t\tTransactionTotalTaxAmount as decimal(10,0),\n\t\tTransactionRoundingAmount as decimal(10,0),\n\t\tTransactionTotalInvoicedAmount as decimal(10,0),\n\t\tTotalCommissionsPayableAmount as decimal(10,0),\n\t\tSplitCommissionsIndicator as boolean,\n\t\tRequestedShipmentCarrierName as string,\n\t\tAlternateCarrierAcceptableIndicator as boolean,\n\t\tShipCompleteIndicator as boolean,\n\t\tAcknowledgementRequiredIndicator as boolean,\n\t\tExpediteTransactionIndicator as boolean,\n\t\tDropShipmentIndicator as boolean,\n\t\tActualShipmentCarrierName as string,\n\t\tTotalWeight as integer,\n\t\tTotalFreightChargeAmount as decimal(10,0),\n\t\tUnitOfMeasureId as integer,\n\t\tEarliestDeliveryWindowTimestamp as timestamp,\n\t\tLatestDeliveryWindowTimestamp as timestamp,\n\t\tDeliveryInstructions as string,\n\t\tCustomerCreditCheckNote as string,\n\t\tMessageToCustomer as string,\n\t\tCustomerId as integer,\n\t\tCustomerAccountId as integer,\n\t\tPurchasingChannelId as integer,\n\t\tSalesChannelId as integer,\n\t\tDistributionChannelId as integer,\n\t\tMarketingEventId as integer,\n\t\tAdvertisingEventId as integer,\n\t\tPromotionId as integer,\n\t\tTransactionTypeId as integer,\n\t\tBillingCycleId as integer,\n\t\tMerchantId as integer,\n\t\tCustomerIdentificationMethodId as integer,\n\t\tTransactionClassificationId as integer,\n\t\tTransactionProcessingStatusId as integer,\n\t\tIsoCurrencyCode as string,\n\t\tTransactionExecutionMethodId as integer,\n\t\tTransactionPriorityId as integer,\n\t\tTransactionTaxStatusId as integer,\n\t\tWebPageUrl as string,\n\t\tSessionId as integer,\n\t\tPointOfSaleId as integer,\n\t\tStoreId as integer,\n\t\tWarehouseId as integer,\n\t\tResponsibilityCenterId as integer,\n\t\tTransactionNote as string,\n\t\tShipmentMethodId as integer,\n\t\tDeviceId as integer,\n\t\tSoftwareProductId as integer,\n\t\tSoftwareProductVersionNumber as integer,\n\t\tApprovedByEmployeeId as integer,\n\t\tPromotionOfferId as integer,\n\t\tLoyaltyCardId as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: true,\n\tentity: 'Transaction.cdm.json/Transaction',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'Transaction',\n\tcorpusPath: 'idwdemo2LogicalSource',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'source',\n\tfolderPath: 'idwdemo2PhysicalSourcePE/Transaction',\n\tfileSystem: 'source') ~> TransactionSource\nTransactionLineItemDeltaSource select(mapColumn(\n\t\tTransactionId,\n\t\tTransactionLineItemId,\n\t\tProductId\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> TransactionLineItem\nTransactionSource select(mapColumn(\n\t\tTransactionId,\n\t\tCustomerId\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> Transaction\nTransactionLineItem, Transaction join(TransactionLineItem@TransactionId == Transaction@TransactionId,\n\tjoinType:'left',\n\tbroadcast: 'auto')~> JoinTransaction\nJoinTransaction aggregate(groupBy(CustomerId,\n\t\tProductId),\n\tPurchaseCount = count(TransactionLineItemId)) ~> AggregatedTransactionLineItem\nAggregatedTransactionLineItem select(mapColumn(\n\t\tCustomerId,\n\t\tProductId,\n\t\tPurchaseCount\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> PreAlterRowCustomerProductInsight\nPreAlterRowCustomerProductInsight alterRow(upsertIf(true())) ~> CustomerProductInsight\nCustomerProductInsight sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['CustomerId','ProductId'],\n\tformat: 'table',\n\tstaged: true,\n\tallowCopyCommand: true) ~> CustomerProductInsightSink"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/idwdemo2AdlsLinkedService')]",
+				"[concat(variables('workspaceId'), '/datasets/idwdemo2DWTarget_DataSet_CustomerProductInsight')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemo2DWTarget_CustomerTransactionInsight_DataFlow')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "idwdemo2DWTarget"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "idwdemo2AdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemo2AdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "TransactionDeltaSource"
+						},
+						{
+							"linkedService": {
+								"referenceName": "idwdemo2AdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemo2AdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "TransactionLineItemSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "idwdemo2DWTarget_DataSet_CustomerTransactionInsight",
+								"type": "DatasetReference"
+							},
+							"name": "CustomerTransactionInsightSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Transaction"
+						},
+						{
+							"name": "TransactionLineItem"
+						},
+						{
+							"name": "JoinTransactionLineItem"
+						},
+						{
+							"name": "AggregatedTransaction"
+						},
+						{
+							"name": "PreAlterRowCustomerTransactionInsight"
+						},
+						{
+							"name": "CustomerTransactionInsight"
+						}
+					],
+					"script": "parameters{\n\tmodifiedAfter as timestamp,\n\tmodifiedBefore as timestamp\n}\nsource(output(\n\t\tTransactionId as integer,\n\t\tTransactionInitiatedTimestamp as timestamp,\n\t\tTransactionCompletedTimestamp as timestamp,\n\t\tTransactionReceivedTimestamp as timestamp,\n\t\tTransactionEntryTimestamp as timestamp,\n\t\tTransactionConfirmationTimestamp as timestamp,\n\t\tCreditCheckTimestamp as timestamp,\n\t\tRequestedDeliveryDate as date,\n\t\tCommittedDeliveryDate as date,\n\t\tActualDeliveryTimestamp as timestamp,\n\t\tDeliveryConfirmationTimestamp as timestamp,\n\t\tTransactionAmount as decimal(10,0),\n\t\tShipmentToName as string,\n\t\tShipmentToLocationId as integer,\n\t\tTransactionConfirmationNumber as string,\n\t\tIdentificationCheckedIndicator as boolean,\n\t\tIdentificationId as integer,\n\t\tTotalRetailPriceAmount as decimal(10,0),\n\t\tTotalAdjustmentPercentage as decimal(10,0),\n\t\tTotalAdjustmentAmount as decimal(10,0),\n\t\tTotalTransactionSalesPriceAmount as decimal(10,0),\n\t\tTotalShippingChargeAmount as decimal(10,0),\n\t\tTransactionTotalTaxAmount as decimal(10,0),\n\t\tTransactionRoundingAmount as decimal(10,0),\n\t\tTransactionTotalInvoicedAmount as decimal(10,0),\n\t\tTotalCommissionsPayableAmount as decimal(10,0),\n\t\tSplitCommissionsIndicator as boolean,\n\t\tRequestedShipmentCarrierName as string,\n\t\tAlternateCarrierAcceptableIndicator as boolean,\n\t\tShipCompleteIndicator as boolean,\n\t\tAcknowledgementRequiredIndicator as boolean,\n\t\tExpediteTransactionIndicator as boolean,\n\t\tDropShipmentIndicator as boolean,\n\t\tActualShipmentCarrierName as string,\n\t\tTotalWeight as integer,\n\t\tTotalFreightChargeAmount as decimal(10,0),\n\t\tUnitOfMeasureId as integer,\n\t\tEarliestDeliveryWindowTimestamp as timestamp,\n\t\tLatestDeliveryWindowTimestamp as timestamp,\n\t\tDeliveryInstructions as string,\n\t\tCustomerCreditCheckNote as string,\n\t\tMessageToCustomer as string,\n\t\tCustomerId as integer,\n\t\tCustomerAccountId as integer,\n\t\tPurchasingChannelId as integer,\n\t\tSalesChannelId as integer,\n\t\tDistributionChannelId as integer,\n\t\tMarketingEventId as integer,\n\t\tAdvertisingEventId as integer,\n\t\tPromotionId as integer,\n\t\tTransactionTypeId as integer,\n\t\tBillingCycleId as integer,\n\t\tMerchantId as integer,\n\t\tCustomerIdentificationMethodId as integer,\n\t\tTransactionClassificationId as integer,\n\t\tTransactionProcessingStatusId as integer,\n\t\tIsoCurrencyCode as string,\n\t\tTransactionExecutionMethodId as integer,\n\t\tTransactionPriorityId as integer,\n\t\tTransactionTaxStatusId as integer,\n\t\tWebPageUrl as string,\n\t\tSessionId as integer,\n\t\tPointOfSaleId as integer,\n\t\tStoreId as integer,\n\t\tWarehouseId as integer,\n\t\tResponsibilityCenterId as integer,\n\t\tTransactionNote as string,\n\t\tShipmentMethodId as integer,\n\t\tDeviceId as integer,\n\t\tSoftwareProductId as integer,\n\t\tSoftwareProductVersionNumber as integer,\n\t\tApprovedByEmployeeId as integer,\n\t\tPromotionOfferId as integer,\n\t\tLoyaltyCardId as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: true,\n\tmodifiedAfter: (addDays(currentUTC(), -180)),\n\tmodifiedBefore: ($modifiedBefore),\n\tentity: 'Transaction.cdm.json/Transaction',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'Transaction',\n\tcorpusPath: 'idwdemo2LogicalSource',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'source',\n\tfolderPath: 'idwdemo2PhysicalSourcePE/Transaction',\n\tfileSystem: 'source') ~> TransactionDeltaSource\nsource(output(\n\t\tTransactionId as integer,\n\t\tTransactionLineItemId as integer,\n\t\tTransactionLineItemStartTimestamp as timestamp,\n\t\tTransactionLineItemCompletedTimestamp as timestamp,\n\t\tProductId as integer,\n\t\tItemSku as string,\n\t\tUniversalProductCode as decimal(10,0),\n\t\tQuantity as decimal(10,0),\n\t\tUnitOfMeasureId as integer,\n\t\tPreorderIndicator as integer,\n\t\tProductListPriceAmount as decimal(10,0),\n\t\tTransactionProductPriceAmount as decimal(10,0),\n\t\tIsoCurrencyCode as string,\n\t\tFreeSampleIndicator as boolean,\n\t\tTotalTransactionLineItemAmount as decimal(10,0),\n\t\tTotalTransactionSalesPriceAmount as decimal(10,0),\n\t\tTransactionLineEntryMethodId as integer,\n\t\tTransactionLineItemScanTimestamp as timestamp,\n\t\tPosDeviceId as integer,\n\t\tScaleUsedIndicator as boolean,\n\t\tScaleMeasuredItemWeight as integer,\n\t\tWeightUomId as integer,\n\t\tScaleQuantity as decimal(10,0),\n\t\tTransactionLineVolume as decimal(10,0),\n\t\tVolumeUomId as integer,\n\t\tProductPriceOverrideIndicator as boolean,\n\t\tProductPriceAdjustmentAmount as decimal(10,0),\n\t\tProductPriceAdjustmentPercentage as decimal(10,0),\n\t\tTotalLineItemAdjustmentAmount as decimal(10,0),\n\t\tLineItemNote as string,\n\t\tQuantityBooked as integer,\n\t\tQuantityBilled as integer,\n\t\tQuantityBacklog as integer,\n\t\tAcceptedQuantity as decimal(10,0),\n\t\tQuantityCancelled as integer,\n\t\tQuantityReturned as integer,\n\t\tBookedTimestamp as timestamp,\n\t\tBilledTimestamp as timestamp,\n\t\tCancelledTimestamp as timestamp,\n\t\tReturnedTimestamp as timestamp,\n\t\tCommittedShipmentTimestamp as timestamp,\n\t\tRequestedDeliveryTimestamp as timestamp,\n\t\tCommittedDeliveryTimestamp as timestamp,\n\t\tCommittedAvailableForPickupTimestamp as timestamp,\n\t\tPlannedPickTimestamp as timestamp,\n\t\tActualPickTimestamp as timestamp,\n\t\tPlannedShipmentTimestamp as timestamp,\n\t\tActualShipmentTimestamp as timestamp,\n\t\tPlannedDeliveryTimestamp as timestamp,\n\t\tActualDeliveryTimestamp as timestamp,\n\t\tDeliveryConfirmationTimestamp as timestamp,\n\t\tShipmentChargeAmount as decimal(10,0),\n\t\tShipmentCostAmount as decimal(10,0),\n\t\tPickPackageCostAmount as decimal(10,0),\n\t\tShippingLocationId as integer,\n\t\tShipmentMethodId as integer,\n\t\tDropShipLineItemIndicator as boolean,\n\t\tWaybillNumber as integer,\n\t\tTareWeight as integer,\n\t\tNetWeight as integer,\n\t\tShipCompleteIndicator as boolean,\n\t\tEarliestDeliveryWindowTimestamp as timestamp,\n\t\tLatestDeliveryWindowTimestamp as timestamp,\n\t\tReturnTransactionId as integer,\n\t\tReturnTransactionLineItemId as integer,\n\t\tReturnToStockIndicator as boolean,\n\t\tReturnToStoreIndicator as boolean,\n\t\tApprovedByEmployeeId as integer,\n\t\tSalesChannelId as integer,\n\t\tDistributionChannelId as integer,\n\t\tTransactionLineItemTypeId as integer,\n\t\tTransactionLineItemStatusId as integer,\n\t\tFuelPumpId as integer,\n\t\tBuyClassId as integer,\n\t\tPromotionId as integer,\n\t\tPharmacyId as integer,\n\t\tPharmacyTransactionId as integer,\n\t\tPromotionOfferId as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: true,\n\tentity: 'TransactionLineItem.cdm.json/TransactionLineItem',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'TransactionLineItem',\n\tcorpusPath: 'idwdemo2LogicalSource',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'source',\n\tfolderPath: 'idwdemo2PhysicalSourcePE/TransactionLineItem',\n\tfileSystem: 'source') ~> TransactionLineItemSource\nTransactionDeltaSource select(mapColumn(\n\t\tTransactionId,\n\t\tCustomerId\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> Transaction\nTransactionLineItemSource select(mapColumn(\n\t\tTransactionId,\n\t\tTotalTransactionLineItemAmount\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> TransactionLineItem\nTransaction, TransactionLineItem join(Transaction@TransactionId == TransactionLineItem@TransactionId,\n\tjoinType:'left',\n\tbroadcast: 'auto')~> JoinTransactionLineItem\nJoinTransactionLineItem aggregate(groupBy(CustomerId),\n\tTransactionCount = count(Transaction@TransactionId),\n\t\tTotalTransactionAmount = sum(TotalTransactionLineItemAmount)) ~> AggregatedTransaction\nAggregatedTransaction select(mapColumn(\n\t\tCustomerId,\n\t\tTransactionCount,\n\t\tTotalTransactionAmount\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> PreAlterRowCustomerTransactionInsight\nPreAlterRowCustomerTransactionInsight alterRow(upsertIf(true())) ~> CustomerTransactionInsight\nCustomerTransactionInsight sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['CustomerId'],\n\tformat: 'table',\n\tstaged: true,\n\tallowCopyCommand: true) ~> CustomerTransactionInsightSink"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/idwdemo2AdlsLinkedService')]",
+				"[concat(variables('workspaceId'), '/datasets/idwdemo2DWTarget_DataSet_CustomerTransactionInsight')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemoAdlsTarget_CustomerProductInsight_DataFlow')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "idwdemoAdlsTarget"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "TransactionLineItemDeltaSource"
+						},
+						{
+							"linkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "TransactionSource"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "CustomerProductInsightSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "TransactionLineItem"
+						},
+						{
+							"name": "Transaction"
+						},
+						{
+							"name": "JoinTransaction"
+						},
+						{
+							"name": "AggregatedTransactionLineItem"
+						},
+						{
+							"name": "CustomerProductInsight"
+						}
+					],
+					"script": "parameters{\n\tmodifiedAfter as timestamp,\n\tmodifiedBefore as timestamp\n}\nsource(output(\n\t\tTransactionId as integer,\n\t\tTransactionLineItemId as integer,\n\t\tTransactionLineItemStartTimestamp as timestamp,\n\t\tTransactionLineItemCompletedTimestamp as timestamp,\n\t\tProductId as integer,\n\t\tItemSku as string,\n\t\tUniversalProductCode as decimal(10,0),\n\t\tQuantity as decimal(10,0),\n\t\tUnitOfMeasureId as integer,\n\t\tPreorderIndicator as integer,\n\t\tProductListPriceAmount as decimal(10,0),\n\t\tTransactionProductPriceAmount as decimal(10,0),\n\t\tIsoCurrencyCode as string,\n\t\tFreeSampleIndicator as boolean,\n\t\tTotalTransactionLineItemAmount as decimal(10,0),\n\t\tTotalTransactionSalesPriceAmount as decimal(10,0),\n\t\tTransactionLineEntryMethodId as integer,\n\t\tTransactionLineItemScanTimestamp as timestamp,\n\t\tPosDeviceId as integer,\n\t\tScaleUsedIndicator as boolean,\n\t\tScaleMeasuredItemWeight as integer,\n\t\tWeightUomId as integer,\n\t\tScaleQuantity as decimal(10,0),\n\t\tTransactionLineVolume as decimal(10,0),\n\t\tVolumeUomId as integer,\n\t\tProductPriceOverrideIndicator as boolean,\n\t\tProductPriceAdjustmentAmount as decimal(10,0),\n\t\tProductPriceAdjustmentPercentage as decimal(10,0),\n\t\tTotalLineItemAdjustmentAmount as decimal(10,0),\n\t\tLineItemNote as string,\n\t\tQuantityBooked as integer,\n\t\tQuantityBilled as integer,\n\t\tQuantityBacklog as integer,\n\t\tAcceptedQuantity as decimal(10,0),\n\t\tQuantityCancelled as integer,\n\t\tQuantityReturned as integer,\n\t\tBookedTimestamp as timestamp,\n\t\tBilledTimestamp as timestamp,\n\t\tCancelledTimestamp as timestamp,\n\t\tReturnedTimestamp as timestamp,\n\t\tCommittedShipmentTimestamp as timestamp,\n\t\tRequestedDeliveryTimestamp as timestamp,\n\t\tCommittedDeliveryTimestamp as timestamp,\n\t\tCommittedAvailableForPickupTimestamp as timestamp,\n\t\tPlannedPickTimestamp as timestamp,\n\t\tActualPickTimestamp as timestamp,\n\t\tPlannedShipmentTimestamp as timestamp,\n\t\tActualShipmentTimestamp as timestamp,\n\t\tPlannedDeliveryTimestamp as timestamp,\n\t\tActualDeliveryTimestamp as timestamp,\n\t\tDeliveryConfirmationTimestamp as timestamp,\n\t\tShipmentChargeAmount as decimal(10,0),\n\t\tShipmentCostAmount as decimal(10,0),\n\t\tPickPackageCostAmount as decimal(10,0),\n\t\tShippingLocationId as integer,\n\t\tShipmentMethodId as integer,\n\t\tDropShipLineItemIndicator as boolean,\n\t\tWaybillNumber as integer,\n\t\tTareWeight as integer,\n\t\tNetWeight as integer,\n\t\tShipCompleteIndicator as boolean,\n\t\tEarliestDeliveryWindowTimestamp as timestamp,\n\t\tLatestDeliveryWindowTimestamp as timestamp,\n\t\tReturnTransactionId as integer,\n\t\tReturnTransactionLineItemId as integer,\n\t\tReturnToStockIndicator as boolean,\n\t\tReturnToStoreIndicator as boolean,\n\t\tApprovedByEmployeeId as integer,\n\t\tSalesChannelId as integer,\n\t\tDistributionChannelId as integer,\n\t\tTransactionLineItemTypeId as integer,\n\t\tTransactionLineItemStatusId as integer,\n\t\tFuelPumpId as integer,\n\t\tBuyClassId as integer,\n\t\tPromotionId as integer,\n\t\tPharmacyId as integer,\n\t\tPharmacyTransactionId as integer,\n\t\tPromotionOfferId as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: true,\n\tmodifiedAfter: (addDays(currentUTC(), -180)),\n\tmodifiedBefore: ($modifiedBefore),\n\tentity: 'TransactionLineItem.cdm.json/TransactionLineItem',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'TransactionLineItem',\n\tcorpusPath: 'idwdemoLogicalSource',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'source',\n\tfolderPath: 'idwdemoPhysicalSourcePE/TransactionLineItem',\n\tfileSystem: 'source') ~> TransactionLineItemDeltaSource\nsource(output(\n\t\tTransactionId as integer,\n\t\tTransactionInitiatedTimestamp as timestamp,\n\t\tTransactionCompletedTimestamp as timestamp,\n\t\tTransactionReceivedTimestamp as timestamp,\n\t\tTransactionEntryTimestamp as timestamp,\n\t\tTransactionConfirmationTimestamp as timestamp,\n\t\tCreditCheckTimestamp as timestamp,\n\t\tRequestedDeliveryDate as date,\n\t\tCommittedDeliveryDate as date,\n\t\tActualDeliveryTimestamp as timestamp,\n\t\tDeliveryConfirmationTimestamp as timestamp,\n\t\tTransactionAmount as decimal(10,0),\n\t\tShipmentToName as string,\n\t\tShipmentToLocationId as integer,\n\t\tTransactionConfirmationNumber as string,\n\t\tIdentificationCheckedIndicator as boolean,\n\t\tIdentificationId as integer,\n\t\tTotalRetailPriceAmount as decimal(10,0),\n\t\tTotalAdjustmentPercentage as decimal(10,0),\n\t\tTotalAdjustmentAmount as decimal(10,0),\n\t\tTotalTransactionSalesPriceAmount as decimal(10,0),\n\t\tTotalShippingChargeAmount as decimal(10,0),\n\t\tTransactionTotalTaxAmount as decimal(10,0),\n\t\tTransactionRoundingAmount as decimal(10,0),\n\t\tTransactionTotalInvoicedAmount as decimal(10,0),\n\t\tTotalCommissionsPayableAmount as decimal(10,0),\n\t\tSplitCommissionsIndicator as boolean,\n\t\tRequestedShipmentCarrierName as string,\n\t\tAlternateCarrierAcceptableIndicator as boolean,\n\t\tShipCompleteIndicator as boolean,\n\t\tAcknowledgementRequiredIndicator as boolean,\n\t\tExpediteTransactionIndicator as boolean,\n\t\tDropShipmentIndicator as boolean,\n\t\tActualShipmentCarrierName as string,\n\t\tTotalWeight as integer,\n\t\tTotalFreightChargeAmount as decimal(10,0),\n\t\tUnitOfMeasureId as integer,\n\t\tEarliestDeliveryWindowTimestamp as timestamp,\n\t\tLatestDeliveryWindowTimestamp as timestamp,\n\t\tDeliveryInstructions as string,\n\t\tCustomerCreditCheckNote as string,\n\t\tMessageToCustomer as string,\n\t\tCustomerId as integer,\n\t\tCustomerAccountId as integer,\n\t\tPurchasingChannelId as integer,\n\t\tSalesChannelId as integer,\n\t\tDistributionChannelId as integer,\n\t\tMarketingEventId as integer,\n\t\tAdvertisingEventId as integer,\n\t\tPromotionId as integer,\n\t\tTransactionTypeId as integer,\n\t\tBillingCycleId as integer,\n\t\tMerchantId as integer,\n\t\tCustomerIdentificationMethodId as integer,\n\t\tTransactionClassificationId as integer,\n\t\tTransactionProcessingStatusId as integer,\n\t\tIsoCurrencyCode as string,\n\t\tTransactionExecutionMethodId as integer,\n\t\tTransactionPriorityId as integer,\n\t\tTransactionTaxStatusId as integer,\n\t\tWebPageUrl as string,\n\t\tSessionId as integer,\n\t\tPointOfSaleId as integer,\n\t\tStoreId as integer,\n\t\tWarehouseId as integer,\n\t\tResponsibilityCenterId as integer,\n\t\tTransactionNote as string,\n\t\tShipmentMethodId as integer,\n\t\tDeviceId as integer,\n\t\tSoftwareProductId as integer,\n\t\tSoftwareProductVersionNumber as integer,\n\t\tApprovedByEmployeeId as integer,\n\t\tPromotionOfferId as integer,\n\t\tLoyaltyCardId as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: true,\n\tentity: 'Transaction.cdm.json/Transaction',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'Transaction',\n\tcorpusPath: 'idwdemoLogicalSource',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'source',\n\tfolderPath: 'idwdemoPhysicalSourcePE/Transaction',\n\tfileSystem: 'source') ~> TransactionSource\nTransactionLineItemDeltaSource select(mapColumn(\n\t\tTransactionId,\n\t\tTransactionLineItemId,\n\t\tProductId\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> TransactionLineItem\nTransactionSource select(mapColumn(\n\t\tTransactionId,\n\t\tCustomerId\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> Transaction\nTransactionLineItem, Transaction join(TransactionLineItem@TransactionId == Transaction@TransactionId,\n\tjoinType:'left',\n\tbroadcast: 'auto')~> JoinTransaction\nJoinTransaction aggregate(groupBy(CustomerId,\n\t\tProductId),\n\tPurchaseCount = count(TransactionLineItemId)) ~> AggregatedTransactionLineItem\nAggregatedTransactionLineItem select(mapColumn(\n\t\tCustomerId,\n\t\tProductId,\n\t\tPurchaseCount\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> CustomerProductInsight\nCustomerProductInsight sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tentity: 'CustomerProductInsight.cdm.json/CustomerProductInsight',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'CustomerProductInsight',\n\tpartitionPath: 'enderowski',\n\tfolderPath: 'idwdemoPhysicalTargetPE/CustomerProductInsight',\n\tfileSystem: 'target',\n\tcolumnDelimiter: ',',\n\tcolumnNamesAsHeader: true,\n\tcorpusPath: 'idwdemoLogicalTarget',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'target',\n\ttruncate: false,\n\tpartitionBy('hash', 1)) ~> CustomerProductInsightSink"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/idwdemoAdlsLinkedService')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwdemoAdlsTarget_CustomerTransactionInsight_DataFlow')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"folder": {
+					"name": "idwdemoAdlsTarget"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "TransactionDeltaSource"
+						},
+						{
+							"linkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "TransactionLineItemSource"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"schemaLinkedService": {
+								"referenceName": "idwdemoAdlsLinkedService",
+								"type": "LinkedServiceReference"
+							},
+							"name": "CustomerTransactionInsightSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Transaction"
+						},
+						{
+							"name": "TransactionLineItem"
+						},
+						{
+							"name": "JoinTransactionLineItem"
+						},
+						{
+							"name": "AggregatedTransaction"
+						},
+						{
+							"name": "CustomerTransactionInsight"
+						}
+					],
+					"script": "parameters{\n\tmodifiedAfter as timestamp,\n\tmodifiedBefore as timestamp\n}\nsource(output(\n\t\tTransactionId as integer,\n\t\tTransactionInitiatedTimestamp as timestamp,\n\t\tTransactionCompletedTimestamp as timestamp,\n\t\tTransactionReceivedTimestamp as timestamp,\n\t\tTransactionEntryTimestamp as timestamp,\n\t\tTransactionConfirmationTimestamp as timestamp,\n\t\tCreditCheckTimestamp as timestamp,\n\t\tRequestedDeliveryDate as date,\n\t\tCommittedDeliveryDate as date,\n\t\tActualDeliveryTimestamp as timestamp,\n\t\tDeliveryConfirmationTimestamp as timestamp,\n\t\tTransactionAmount as decimal(10,0),\n\t\tShipmentToName as string,\n\t\tShipmentToLocationId as integer,\n\t\tTransactionConfirmationNumber as string,\n\t\tIdentificationCheckedIndicator as boolean,\n\t\tIdentificationId as integer,\n\t\tTotalRetailPriceAmount as decimal(10,0),\n\t\tTotalAdjustmentPercentage as decimal(10,0),\n\t\tTotalAdjustmentAmount as decimal(10,0),\n\t\tTotalTransactionSalesPriceAmount as decimal(10,0),\n\t\tTotalShippingChargeAmount as decimal(10,0),\n\t\tTransactionTotalTaxAmount as decimal(10,0),\n\t\tTransactionRoundingAmount as decimal(10,0),\n\t\tTransactionTotalInvoicedAmount as decimal(10,0),\n\t\tTotalCommissionsPayableAmount as decimal(10,0),\n\t\tSplitCommissionsIndicator as boolean,\n\t\tRequestedShipmentCarrierName as string,\n\t\tAlternateCarrierAcceptableIndicator as boolean,\n\t\tShipCompleteIndicator as boolean,\n\t\tAcknowledgementRequiredIndicator as boolean,\n\t\tExpediteTransactionIndicator as boolean,\n\t\tDropShipmentIndicator as boolean,\n\t\tActualShipmentCarrierName as string,\n\t\tTotalWeight as integer,\n\t\tTotalFreightChargeAmount as decimal(10,0),\n\t\tUnitOfMeasureId as integer,\n\t\tEarliestDeliveryWindowTimestamp as timestamp,\n\t\tLatestDeliveryWindowTimestamp as timestamp,\n\t\tDeliveryInstructions as string,\n\t\tCustomerCreditCheckNote as string,\n\t\tMessageToCustomer as string,\n\t\tCustomerId as integer,\n\t\tCustomerAccountId as integer,\n\t\tPurchasingChannelId as integer,\n\t\tSalesChannelId as integer,\n\t\tDistributionChannelId as integer,\n\t\tMarketingEventId as integer,\n\t\tAdvertisingEventId as integer,\n\t\tPromotionId as integer,\n\t\tTransactionTypeId as integer,\n\t\tBillingCycleId as integer,\n\t\tMerchantId as integer,\n\t\tCustomerIdentificationMethodId as integer,\n\t\tTransactionClassificationId as integer,\n\t\tTransactionProcessingStatusId as integer,\n\t\tIsoCurrencyCode as string,\n\t\tTransactionExecutionMethodId as integer,\n\t\tTransactionPriorityId as integer,\n\t\tTransactionTaxStatusId as integer,\n\t\tWebPageUrl as string,\n\t\tSessionId as integer,\n\t\tPointOfSaleId as integer,\n\t\tStoreId as integer,\n\t\tWarehouseId as integer,\n\t\tResponsibilityCenterId as integer,\n\t\tTransactionNote as string,\n\t\tShipmentMethodId as integer,\n\t\tDeviceId as integer,\n\t\tSoftwareProductId as integer,\n\t\tSoftwareProductVersionNumber as integer,\n\t\tApprovedByEmployeeId as integer,\n\t\tPromotionOfferId as integer,\n\t\tLoyaltyCardId as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: true,\n\tmodifiedAfter: (addDays(currentUTC(), -180)),\n\tmodifiedBefore: ($modifiedBefore),\n\tentity: 'Transaction.cdm.json/Transaction',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'Transaction',\n\tcorpusPath: 'idwdemoLogicalSource',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'source',\n\tfolderPath: 'idwdemoPhysicalSourcePE/Transaction',\n\tfileSystem: 'source') ~> TransactionDeltaSource\nsource(output(\n\t\tTransactionId as integer,\n\t\tTransactionLineItemId as integer,\n\t\tTransactionLineItemStartTimestamp as timestamp,\n\t\tTransactionLineItemCompletedTimestamp as timestamp,\n\t\tProductId as integer,\n\t\tItemSku as string,\n\t\tUniversalProductCode as decimal(10,0),\n\t\tQuantity as decimal(10,0),\n\t\tUnitOfMeasureId as integer,\n\t\tPreorderIndicator as integer,\n\t\tProductListPriceAmount as decimal(10,0),\n\t\tTransactionProductPriceAmount as decimal(10,0),\n\t\tIsoCurrencyCode as string,\n\t\tFreeSampleIndicator as boolean,\n\t\tTotalTransactionLineItemAmount as decimal(10,0),\n\t\tTotalTransactionSalesPriceAmount as decimal(10,0),\n\t\tTransactionLineEntryMethodId as integer,\n\t\tTransactionLineItemScanTimestamp as timestamp,\n\t\tPosDeviceId as integer,\n\t\tScaleUsedIndicator as boolean,\n\t\tScaleMeasuredItemWeight as integer,\n\t\tWeightUomId as integer,\n\t\tScaleQuantity as decimal(10,0),\n\t\tTransactionLineVolume as decimal(10,0),\n\t\tVolumeUomId as integer,\n\t\tProductPriceOverrideIndicator as boolean,\n\t\tProductPriceAdjustmentAmount as decimal(10,0),\n\t\tProductPriceAdjustmentPercentage as decimal(10,0),\n\t\tTotalLineItemAdjustmentAmount as decimal(10,0),\n\t\tLineItemNote as string,\n\t\tQuantityBooked as integer,\n\t\tQuantityBilled as integer,\n\t\tQuantityBacklog as integer,\n\t\tAcceptedQuantity as decimal(10,0),\n\t\tQuantityCancelled as integer,\n\t\tQuantityReturned as integer,\n\t\tBookedTimestamp as timestamp,\n\t\tBilledTimestamp as timestamp,\n\t\tCancelledTimestamp as timestamp,\n\t\tReturnedTimestamp as timestamp,\n\t\tCommittedShipmentTimestamp as timestamp,\n\t\tRequestedDeliveryTimestamp as timestamp,\n\t\tCommittedDeliveryTimestamp as timestamp,\n\t\tCommittedAvailableForPickupTimestamp as timestamp,\n\t\tPlannedPickTimestamp as timestamp,\n\t\tActualPickTimestamp as timestamp,\n\t\tPlannedShipmentTimestamp as timestamp,\n\t\tActualShipmentTimestamp as timestamp,\n\t\tPlannedDeliveryTimestamp as timestamp,\n\t\tActualDeliveryTimestamp as timestamp,\n\t\tDeliveryConfirmationTimestamp as timestamp,\n\t\tShipmentChargeAmount as decimal(10,0),\n\t\tShipmentCostAmount as decimal(10,0),\n\t\tPickPackageCostAmount as decimal(10,0),\n\t\tShippingLocationId as integer,\n\t\tShipmentMethodId as integer,\n\t\tDropShipLineItemIndicator as boolean,\n\t\tWaybillNumber as integer,\n\t\tTareWeight as integer,\n\t\tNetWeight as integer,\n\t\tShipCompleteIndicator as boolean,\n\t\tEarliestDeliveryWindowTimestamp as timestamp,\n\t\tLatestDeliveryWindowTimestamp as timestamp,\n\t\tReturnTransactionId as integer,\n\t\tReturnTransactionLineItemId as integer,\n\t\tReturnToStockIndicator as boolean,\n\t\tReturnToStoreIndicator as boolean,\n\t\tApprovedByEmployeeId as integer,\n\t\tSalesChannelId as integer,\n\t\tDistributionChannelId as integer,\n\t\tTransactionLineItemTypeId as integer,\n\t\tTransactionLineItemStatusId as integer,\n\t\tFuelPumpId as integer,\n\t\tBuyClassId as integer,\n\t\tPromotionId as integer,\n\t\tPharmacyId as integer,\n\t\tPharmacyTransactionId as integer,\n\t\tPromotionOfferId as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: true,\n\tentity: 'TransactionLineItem.cdm.json/TransactionLineItem',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'TransactionLineItem',\n\tcorpusPath: 'idwdemoLogicalSource',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'source',\n\tfolderPath: 'idwdemoPhysicalSourcePE/TransactionLineItem',\n\tfileSystem: 'source') ~> TransactionLineItemSource\nTransactionDeltaSource select(mapColumn(\n\t\tTransactionId,\n\t\tCustomerId\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> Transaction\nTransactionLineItemSource select(mapColumn(\n\t\tTransactionId,\n\t\tTotalTransactionLineItemAmount\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> TransactionLineItem\nTransaction, TransactionLineItem join(Transaction@TransactionId == TransactionLineItem@TransactionId,\n\tjoinType:'left',\n\tbroadcast: 'auto')~> JoinTransactionLineItem\nJoinTransactionLineItem aggregate(groupBy(CustomerId),\n\tTransactionCount = count(Transaction@TransactionId),\n\t\tTotalTransactionAmount = sum(TotalTransactionLineItemAmount)) ~> AggregatedTransaction\nAggregatedTransaction select(mapColumn(\n\t\tCustomerId,\n\t\tTransactionCount,\n\t\tTotalTransactionAmount\n\t),\n\tskipDuplicateMapInputs: false,\n\tskipDuplicateMapOutputs: false) ~> CustomerTransactionInsight\nCustomerTransactionInsight sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tentity: 'CustomerTransactionInsight.cdm.json/CustomerTransactionInsight',\n\tformat: 'cdm',\n\tmanifestType: 'manifest',\n\tmanifestName: 'CustomerTransactionInsight',\n\tfolderPath: 'idwdemoPhysicalTargetPE/CustomerTransactionInsight',\n\tfileSystem: 'target',\n\tcolumnDelimiter: ',',\n\tcolumnNamesAsHeader: true,\n\tcorpusPath: 'idwdemoLogicalTarget',\n\tcorpusStore: 'adlsgen2',\n\tadlsgen2_fileSystem: 'target',\n\ttruncate: false,\n\tpartitionBy('hash', 1)) ~> CustomerTransactionInsightSink"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/idwdemoAdlsLinkedService')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/GenerateTimeDim')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"description": "Time dimension tablosunu generate etmek için kulalnacağımız script",
+				"content": {
+					"query": "IF OBJECT_ID('tempdb..#DateTmp') IS NOT NULL\nBEGIN\n    DROP TABLE #DateTmp\nEND\n\nCREATE TABLE #DateTmp (DateKey datetime NOT NULL)\n\n-- Create temp table with all the dates we will use\nDECLARE @StartDate datetime\nDECLARE @EndDate datetime\nSET @StartDate = '01/01/2005'\nSET @EndDate = getdate() \nDECLARE @LoopDate datetime\nSET @LoopDate = @StartDate\n\nWHILE @LoopDate <= @EndDate\nBEGIN\nINSERT INTO #DateTmp VALUES\n    (\n        @LoopDate\n    )  \t\t  \n    SET @LoopDate = DateAdd(dd, 1, @LoopDate)\nEND\n\nINSERT INTO dbo.DimDate \nSELECT\nCAST(CONVERT(VARCHAR(8), DateKey, 112) AS int) , -- date key\n        DateKey, -- date alt key\n        Year(DateKey), -- calendar year\n        datepart(qq, DateKey), -- calendar quarter\n        Month(DateKey), -- month number of year\n        datename(mm, DateKey), -- month name\n        Day(DateKey),  -- day number of month\n        datepart(dw, DateKey), -- day number of week\n        datename(dw, DateKey), -- day name of week\n        CASE\n            WHEN Month(DateKey) < 7 THEN Year(DateKey)\n            ELSE Year(DateKey) + 1\n        END, -- Fiscal year (assuming fiscal year runs from Jul to June)\n        CASE\n            WHEN Month(DateKey) IN (1, 2, 3) THEN 3\n            WHEN Month(DateKey) IN (4, 5, 6) THEN 4\n            WHEN Month(DateKey) IN (7, 8, 9) THEN 1\n            WHEN Month(DateKey) IN (10, 11, 12) THEN 2\n        END -- fiscal quarter \n    FROM #DateTmp\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"poolName": "idwpool",
+						"databaseName": "idwpool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://masidwadls.dfs.core.windows.net/source/idwdemo2PhysicalSourcePE/Transaction/Data/Transaction.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION='2.0'\n    ) AS [result]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"poolName": "Built-in",
+						"databaseName": "master"
+					}
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 2')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "CREATE TABLE [dbo].[Table]\n(\n    col1 int NOT NULL\n)\nWITH\n(\n    DISTRIBUTION = HASH (col1),\n    CLUSTERED COLUMNSTORE INDEX\n)\nGO\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"poolName": "idwpool",
+						"databaseName": "idwpool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 3')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "CREATE TABLE [dbo].[FactResellerSales](\n    [ProductKey] [int] NOT NULL,\n    [OrderDateKey] [int] NOT NULL,\n    [DueDateKey] [int] NOT NULL,\n    [ShipDateKey] [int] NOT NULL,\n    [ResellerKey] [int] NOT NULL,\n    [EmployeeKey] [int] NOT NULL,\n    [PromotionKey] [int] NOT NULL,\n    [CurrencyKey] [int] NOT NULL,\n    [SalesTerritoryKey] [int] NOT NULL,\n    [SalesOrderNumber] [nvarchar](20) NOT NULL,\n    [SalesOrderLineNumber] [tinyint] NOT NULL,\n    [RevisionNumber] [tinyint] NULL,\n    [OrderQuantity] [smallint] NULL,\n    [UnitPrice] [money] NULL,\n    [ExtendedAmount] [money] NULL,\n    [UnitPriceDiscountPct] [float] NULL,\n    [DiscountAmount] [float] NULL,\n    [ProductStandardCost] [money] NULL,\n    [TotalProductCost] [money] NULL,\n    [SalesAmount] [money] NULL,\n    [TaxAmt] [money] NULL,\n    [Freight] [money] NULL,\n    [CarrierTrackingNumber] [nvarchar](25) NULL,\n    [CustomerPONumber] [nvarchar](25) NULL,\n    [OrderDate] [datetime] NULL,\n    [DueDate] [datetime] NULL,\n    [ShipDate] [datetime] NULL\n)\nWITH\n(\n    DISTRIBUTION = HASH([SalesOrderNumber]),\n    CLUSTERED COLUMNSTORE INDEX\n);\nGO\n\nCREATE TABLE [dbo].[DimReseller](\n    [ResellerKey] [int] NOT NULL,\n    [GeographyKey] [int] NULL,\n    [ResellerAlternateKey] [nvarchar](15) NULL,\n    [Phone] [nvarchar](25) NULL,\n    [BusinessType] [varchar](20) NOT NULL,\n    [ResellerName] [nvarchar](50) NOT NULL,\n    [NumberEmployees] [int] NULL,\n    [OrderFrequency] [char](1) NULL,\n    [OrderMonth] [tinyint] NULL,\n    [FirstOrderYear] [int] NULL,\n    [LastOrderYear] [int] NULL,\n    [ProductLine] [nvarchar](50) NULL,\n    [AddressLine1] [nvarchar](60) NULL,\n    [AddressLine2] [nvarchar](60) NULL,\n    [AnnualSales] [money] NULL,\n    [BankName] [nvarchar](50) NULL,\n    [MinPaymentType] [tinyint] NULL,\n    [MinPaymentAmount] [money] NULL,\n    [AnnualRevenue] [money] NULL,\n    [YearOpened] [int] NULL\n)\nWITH\n(\n    DISTRIBUTION = REPLICATE,\n    CLUSTERED COLUMNSTORE INDEX\n);\nGO\n\nCREATE TABLE [dbo].[DimEmployee](\n    [EmployeeKey] [int] NOT NULL,\n    [ParentEmployeeKey] [int] NULL,\n    [EmployeeNationalIDAlternateKey] [nvarchar](15) NULL,\n    [ParentEmployeeNationalIDAlternateKey] [nvarchar](15) NULL,\n    [SalesTerritoryKey] [int] NULL,\n    [FirstName] [nvarchar](50) NOT NULL,\n    [LastName] [nvarchar](50) NOT NULL,\n    [MiddleName] [nvarchar](50) NULL,\n    [NameStyle] [bit] NOT NULL,\n    [Title] [nvarchar](50) NULL,\n    [HireDate] [date] NULL,\n    [BirthDate] [date] NULL,\n    [LoginID] [nvarchar](256) NULL,\n    [EmailAddress] [nvarchar](50) NULL,\n    [Phone] [nvarchar](25) NULL,\n    [MaritalStatus] [nchar](1) NULL,\n    [EmergencyContactName] [nvarchar](50) NULL,\n    [EmergencyContactPhone] [nvarchar](25) NULL,\n    [SalariedFlag] [bit] NULL,\n    [Gender] [nchar](1) NULL,\n    [PayFrequency] [tinyint] NULL,\n    [BaseRate] [money] NULL,\n    [VacationHours] [smallint] NULL,\n    [SickLeaveHours] [smallint] NULL,\n    [CurrentFlag] [bit] NOT NULL,\n    [SalesPersonFlag] [bit] NOT NULL,\n    [DepartmentName] [nvarchar](50) NULL,\n    [StartDate] [date] NULL,\n    [EndDate] [date] NULL,\n    [Status] [nvarchar](50) NULL,\n    [EmployeePhoto] [varbinary](max) NULL\n)\nWITH\n(\n    DISTRIBUTION = REPLICATE,\n    CLUSTERED INDEX (EmployeeKey)\n);\nGO\n\nCREATE TABLE [dbo].[DimProduct](\n    [ProductKey] [int] NOT NULL,\n    [ProductAlternateKey] [nvarchar](25) NULL,\n    [ProductSubcategoryKey] [int] NULL,\n    [WeightUnitMeasureCode] [nchar](3) NULL,\n    [SizeUnitMeasureCode] [nchar](3) NULL,\n    [EnglishProductName] [nvarchar](50) NOT NULL,\n    [SpanishProductName] [nvarchar](50) NULL,\n    [FrenchProductName] [nvarchar](50) NULL,\n    [StandardCost] [money] NULL,\n    [FinishedGoodsFlag] [bit] NOT NULL,\n    [Color] [nvarchar](15) NOT NULL,\n    [SafetyStockLevel] [smallint] NULL,\n    [ReorderPoint] [smallint] NULL,\n    [ListPrice] [money] NULL,\n    [Size] [nvarchar](50) NULL,\n    [SizeRange] [nvarchar](50) NULL,\n    [Weight] [float] NULL,\n    [DaysToManufacture] [int] NULL,\n    [ProductLine] [nchar](2) NULL,\n    [DealerPrice] [money] NULL,\n    [Class] [nchar](2) NULL,\n    [Style] [nchar](2) NULL,\n    [ModelName] [nvarchar](50) NULL,\n    [LargePhoto] [varbinary](max) NULL,\n    [EnglishDescription] [nvarchar](400) NULL,\n    [FrenchDescription] [nvarchar](400) NULL,\n    [ChineseDescription] [nvarchar](400) NULL,\n    [ArabicDescription] [nvarchar](400) NULL,\n    [HebrewDescription] [nvarchar](400) NULL,\n    [ThaiDescription] [nvarchar](400) NULL,\n    [GermanDescription] [nvarchar](400) NULL,\n    [JapaneseDescription] [nvarchar](400) NULL,\n    [TurkishDescription] [nvarchar](400) NULL,\n    [StartDate] [datetime] NULL,\n    [EndDate] [datetime] NULL,\n    [Status] [nvarchar](7) NULL    \n)\nWITH\n(\n    DISTRIBUTION = REPLICATE,\n    CLUSTERED INDEX (ProductKey)\n);\nGO\n\nCREATE TABLE [dbo].[DimGeography](\n    [GeographyKey] [int] NOT NULL,\n    [City] [nvarchar](30) NULL,\n    [StateProvinceCode] [nvarchar](3) NULL,\n    [StateProvinceName] [nvarchar](50) NULL,\n    [CountryRegionCode] [nvarchar](3) NULL,\n    [EnglishCountryRegionName] [nvarchar](50) NULL,\n    [SpanishCountryRegionName] [nvarchar](50) NULL,\n    [FrenchCountryRegionName] [nvarchar](50) NULL,\n    [PostalCode] [nvarchar](15) NULL,\n    [SalesTerritoryKey] [int] NULL,\n    [IpAddressLocator] [nvarchar](15) NULL\n)\nWITH\n(\n    DISTRIBUTION = REPLICATE,\n    CLUSTERED COLUMNSTORE INDEX\n);\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"poolName": "idwpool",
+						"databaseName": "idwpool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 4')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "COPY INTO [dbo].[DimProduct]\nFROM 'https://solliancepublicdata.blob.core.windows.net/dataengineering/dp-203/awdata/DimProduct.csv'\nWITH (\n    FILE_TYPE='CSV',\n    FIELDTERMINATOR='|',\n    FIELDQUOTE='',\n    ROWTERMINATOR='\\n',\n    ENCODING = 'UTF16'\n);\nGO\n\nCOPY INTO [dbo].[DimReseller]\nFROM 'https://solliancepublicdata.blob.core.windows.net/dataengineering/dp-203/awdata/DimReseller.csv'\nWITH (\n    FILE_TYPE='CSV',\n    FIELDTERMINATOR='|',\n    FIELDQUOTE='',\n    ROWTERMINATOR='\\n',\n    ENCODING = 'UTF16'\n);\nGO\n\nCOPY INTO [dbo].[DimEmployee]\nFROM 'https://solliancepublicdata.blob.core.windows.net/dataengineering/dp-203/awdata/DimEmployee.csv'\nWITH (\n    FILE_TYPE='CSV',\n    FIELDTERMINATOR='|',\n    FIELDQUOTE='',\n    ROWTERMINATOR='\\n',\n    ENCODING = 'UTF16'\n);\nGO\n\nCOPY INTO [dbo].[DimGeography]\nFROM 'https://solliancepublicdata.blob.core.windows.net/dataengineering/dp-203/awdata/DimGeography.csv'\nWITH (\n    FILE_TYPE='CSV',\n    FIELDTERMINATOR='|',\n    FIELDQUOTE='',\n    ROWTERMINATOR='\\n',\n    ENCODING = 'UTF16'\n);\nGO\n\nCOPY INTO [dbo].[FactResellerSales]\nFROM 'https://solliancepublicdata.blob.core.windows.net/dataengineering/dp-203/awdata/FactResellerSales.csv'\nWITH (\n    FILE_TYPE='CSV',\n    FIELDTERMINATOR='|',\n    FIELDQUOTE='',\n    ROWTERMINATOR='\\n',\n    ENCODING = 'UTF16'\n);\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"poolName": "idwpool",
+						"databaseName": "idwpool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 5')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT TOP (100) [ResellerKey]\n,[GeographyKey]\n,[ResellerAlternateKey]\n,[Phone]\n,[BusinessType]\n,[ResellerName]\n,[NumberEmployees]\n,[OrderFrequency]\n,[OrderMonth]\n,[FirstOrderYear]\n,[LastOrderYear]\n,[ProductLine]\n,[AddressLine1]\n,[AddressLine2]\n,[AnnualSales]\n,[BankName]\n,[MinPaymentType]\n,[MinPaymentAmount]\n,[AnnualRevenue]\n,[YearOpened]\n FROM [dbo].[DimReseller]",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"poolName": "idwpool",
+						"databaseName": "idwpool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 6')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "SELECT\n    Coalesce(p.[ModelName], p.[EnglishProductName]) AS [Model]\n    ,g.City AS ResellerCity\n    ,g.StateProvinceName AS StateProvince\n    ,Year(f.OrderDate) AS CalendarYear\n    ,CASE\n        WHEN Month(f.OrderDate) < 7 THEN Year(f.OrderDate)\n        ELSE Year(f.OrderDate) + 1\n    END AS FiscalYear -- Fiscal year runs from Jul to June)\n    ,Month(f.OrderDate) AS [Month]\n    ,Sum(f.OrderQuantity) AS Quantity\n    ,Sum(f.ExtendedAmount) AS Amount\n    ,Approx_count_distinct(f.SalesOrderNumber) AS UniqueOrders  \nFROM\n    [dbo].[FactResellerSales] f\nINNER JOIN [dbo].[DimReseller] r\n    ON f.ResellerKey = r.ResellerKey\nINNER JOIN [dbo].[DimGeography] g\n    ON r.GeographyKey = g.GeographyKey\nINNER JOIN [dbo].[DimProduct] p\n    ON f.[ProductKey] = p.[ProductKey]\nGROUP BY\n    Coalesce(p.[ModelName], p.[EnglishProductName])\n    ,g.City\n    ,g.StateProvinceName\n    ,Year(f.OrderDate)\n    ,CASE\n        WHEN Month(f.OrderDate) < 7 THEN Year(f.OrderDate)\n        ELSE Year(f.OrderDate) + 1\n    END\n    ,Month(f.OrderDate)\nORDER BY Amount DESC",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"poolName": "idwpool",
+						"databaseName": "idwpool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 7')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "COPY INTO [dbo].[DimProductCategory]\nFROM 'https://solliancepublicdata.blob.core.windows.net/dataengineering/dp-203/awdata/DimProductCategory.csv'\nWITH (\n    FILE_TYPE='CSV',\n    FIELDTERMINATOR='|',\n    FIELDQUOTE='',\n    ROWTERMINATOR='\\n',\n    ENCODING = 'UTF16'\n);\nGO\n\nCOPY INTO [dbo].[DimProductSubcategory]\nFROM 'https://solliancepublicdata.blob.core.windows.net/dataengineering/dp-203/awdata/DimProductSubcategory.csv'\nWITH (\n    FILE_TYPE='CSV',\n    FIELDTERMINATOR='|',\n    FIELDQUOTE='',\n    ROWTERMINATOR='\\n',\n    ENCODING = 'UTF16'\n);\nGO",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"poolName": "idwpool",
+						"databaseName": "idwpool"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/bayramidw')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"collation": "SQL_Latin1_General_CP1_CI_AS",
+				"maxSizeBytes": 263882790666240,
+				"restorePointInTime": "0001-01-01T00:00:00",
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus"
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/idwpool')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"collation": "SQL_Latin1_General_CP1_CI_AS",
+				"maxSizeBytes": 263882790666240,
+				"restorePointInTime": "0001-01-01T00:00:00",
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus"
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/selmaidw')]",
+			"type": "Microsoft.Synapse/workspaces/sqlPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"collation": "SQL_Latin1_General_CP1_CI_AS",
+				"maxSizeBytes": 263882790666240,
+				"restorePointInTime": "0001-01-01T00:00:00",
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus"
+		}
+	]
+}

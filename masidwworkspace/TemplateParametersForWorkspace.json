@@ -1,0 +1,42 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"value": "masidwworkspace"
+		},
+		"AzureBlobStorage1_connectionString": {
+			"value": ""
+		},
+		"AzureDataLakeStorage1_accountKey": {
+			"value": ""
+		},
+		"idwdemo2AdlsLinkedService_accountKey": {
+			"value": ""
+		},
+		"idwdemo2DWLinkedService_connectionString": {
+			"value": ""
+		},
+		"idwdemoAdlsLinkedService_accountKey": {
+			"value": ""
+		},
+		"masidwworkspace-WorkspaceDefaultSqlServer_connectionString": {
+			"value": ""
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://masidwadls.dfs.core.windows.net"
+		},
+		"idwdemo2AdlsLinkedService_properties_typeProperties_url": {
+			"value": "https://masidwadls.dfs.core.windows.net"
+		},
+		"idwdemoAdlsLinkedService_properties_typeProperties_url": {
+			"value": "https://masidwadls.dfs.core.windows.net"
+		},
+		"masidwworkspace-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"value": "https://masidwadls.dfs.core.windows.net"
+		},
+		"nyc_tlc_green_sasUri": {
+			"value": ""
+		}
+	}
+}
