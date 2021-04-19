@@ -1,0 +1,18 @@
+{
+	"name": "GenerateTimeDim",
+	"properties": {
+		"description": "Time dimension tablosunu generate etmek için kulalnacağımız script",
+		"content": {
+			"query": "IF OBJECT_ID('tempdb..#DateTmp') IS NOT NULL\nBEGIN\n    DROP TABLE #DateTmp\nEND\n\nCREATE TABLE #DateTmp (DateKey datetime NOT NULL)\n\n-- Create temp table with all the dates we will use\nDECLARE @StartDate datetime\nDECLARE @EndDate datetime\nSET @StartDate = '01/01/2005'\nSET @EndDate = getdate() \nDECLARE @LoopDate datetime\nSET @LoopDate = @StartDate\n\nWHILE @LoopDate <= @EndDate\nBEGIN\nINSERT INTO #DateTmp VALUES\n    (\n        @LoopDate\n    )  \t\t  \n    SET @LoopDate = DateAdd(dd, 1, @LoopDate)\nEND\n\nINSERT INTO dbo.DimDate \nSELECT\nCAST(CONVERT(VARCHAR(8), DateKey, 112) AS int) , -- date key\n        DateKey, -- date alt key\n        Year(DateKey), -- calendar year\n        datepart(qq, DateKey), -- calendar quarter\n        Month(DateKey), -- month number of year\n        datename(mm, DateKey), -- month name\n        Day(DateKey),  -- day number of month\n        datepart(dw, DateKey), -- day number of week\n        datename(dw, DateKey), -- day name of week\n        CASE\n            WHEN Month(DateKey) < 7 THEN Year(DateKey)\n            ELSE Year(DateKey) + 1\n        END, -- Fiscal year (assuming fiscal year runs from Jul to June)\n        CASE\n            WHEN Month(DateKey) IN (1, 2, 3) THEN 3\n            WHEN Month(DateKey) IN (4, 5, 6) THEN 4\n            WHEN Month(DateKey) IN (7, 8, 9) THEN 1\n            WHEN Month(DateKey) IN (10, 11, 12) THEN 2\n        END -- fiscal quarter \n    FROM #DateTmp\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"poolName": "idwpool",
+				"databaseName": "idwpool"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
