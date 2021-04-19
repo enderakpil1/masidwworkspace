@@ -108,6 +108,9 @@
 								"headers": {
 									"Nothing": "\"Nothing\""
 								},
+								"body": {
+									"a": "key"
+								},
 								"authentication": {
 									"type": "MSI",
 									"resource": "https://management.azure.com/"
